@@ -4,7 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from dotenv import load_dotenv
-from datetime import date
+from datetime import datetime
+from utils.elo import *
 
 # Charger les variables du fichier .env
 load_dotenv()
@@ -33,18 +34,33 @@ if not os.path.exists(players_elo_file):
 history = pd.read_csv(history_file)
 players_elo = pd.read_csv(players_elo_file)
 
-def prob_A_win(eloA: float, eloB:float )-> float:
-    return 1 / (1 + 10**((eloB - eloA) / 400))
 
-def get_new_rating(eloA: float, eloB: float, result: bool, k=32) -> float:
-    return eloA + k * (result - prob_A_win(eloA, eloB))
 
-def set_player_elo(player: str, mode: str, new_elo: float):
+def set_player_elo(player: str, mode: str, new_elo: float, new_mod_elo: float):
     if player not in players_elo['player'].values:
-        players_elo = players_elo.append({'id': players_elo['id'].max() +1 ,'player': player, 'general_elo': 1000, '1v1_elo': 1000, '2v2_elo': 1000, '3v3_elo': 1000, 'date_time': date.today()}, ignore_index=True)
-    #ECRIRE LES LIGNES POUR AJOUTER LE ELO EN FONCTION DU MODE
+        players_elo = players_elo.append({'id': players_elo['id'].max() +1 ,
+                                          'player': player,
+                                          'general_elo': 1000,
+                                          '1v1_elo': 1000,
+                                          '2v2_elo': 1000, 
+                                          '3v3_elo': 1000, 
+                                          'date_time': datetime.now()}, 
+                                          ignore_index=True)
 
+    player_row = players_elo[players_elo['player'] == player].sort_values('date_time').iloc[-1]
+    new_row = player_row.copy()
+    new_row['id'] = players_elo['id'].max() + 1
+    new_row['date_time'] = datetime.now()
+    new_row['general_elo'] = new_elo
 
+    if mode == '1v1':
+        new_row['1v1_elo'] = new_mod_elo    
+    elif mode == '2v2':
+        new_row['2v2_elo'] = new_mod_elo  
+    elif mode == '3v3':
+        new_row['3v3_elo'] = new_mod_elo 
+        
+    players_elo = players_elo.append(new_row)
     players_elo.to_csv(players_elo_file, index=False)
 
 
